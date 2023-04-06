@@ -16,9 +16,10 @@ from PyQt5.QtGui import QPixmap
 face_cascade = cv.CascadeClassifier('readonly/haarcascade_frontalface_default.xml')
 
 # class variable
-file = zipfile.ZipFile('readonly/images.zip', 'r')
+file = zipfile.ZipFile('readonly/small_img.zip', 'r')
 newspaperlst = file.infolist()
 img_wordict = dict()
+cached = dict()
 
 # build up the dict that mapping the newspaper image and all the word on it
 def database():
@@ -75,11 +76,22 @@ def concatenate(img_lst):
 
 # Finding all the image object that have the string user input
 def related(word):
-    result = list()
-    for k in img_wordict.keys():
-        if word in k:
-            result.append(img_wordict[k])
-    return result
+    result = cached.get(word)
+    if (result):
+        return result
+    
+    else:
+        result = list()
+        for k in img_wordict.keys():
+            if word in k:
+                result.append(img_wordict[k])
+        cached[word] = result
+        savecached()
+        return result
+
+def savecached():
+    with open('readonly/cached', 'wb') as f:
+            pickle.dump(cached, f)  
 
 # display method, the code was written in Jupytor Notebook environment with Ipython.display method, this is a subtitile version for desktop
 def display(img):
@@ -94,6 +106,11 @@ def display(img):
 def search(word):
     database()
     word = word.lower()
+
+    if os.path.exists('readonly/cached'):
+        with open('readonly/cached', 'rb') as f:
+            cached = pickle.load(f)
+
     img_lst = related(word)
     for news in img_lst:
         print('Result found in file {}'.format(news.filename))
